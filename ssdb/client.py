@@ -1,6 +1,12 @@
 #coding=utf-8
 from __future__ import with_statement
-from itertools import chain, starmap, izip_longest
+from itertools import chain, starmap
+try:
+    # Python 3
+    from itertools import zip_longest
+except ImportError:
+    # Python 2
+    from itertools import izip_longest as zip_longest
 import datetime
 import sys
 import warnings
@@ -124,7 +130,7 @@ class StrictSSDB(object):
 
     This abstract class provides a Python interface to all SSDB commands and an
     implementation of the SSDB protocol.
-    
+
     Connection derives from this, implementing how the commands are sent and
     received to the SSDB server.
     """
@@ -153,10 +159,10 @@ class StrictSSDB(object):
         string_keys_to_dict(
             'zavg',
             lambda r: float(r[0])
-        ),        
+        ),
         string_keys_to_dict(
             'multi_get multi_hget hgetall '
-            'multi_zget zscan zrscan',            
+            'multi_zget zscan zrscan',
             list_to_dict
         ),
         string_keys_to_dict(
@@ -166,16 +172,16 @@ class StrictSSDB(object):
         string_keys_to_dict(
             'zscan zrscan zrange zrrange',
             list_to_int_ordereddict
-        ),        
+        ),
         string_keys_to_dict(
             'multi_zget',
             list_to_int_dict
-        ),        
+        ),
         string_keys_to_dict(
             'keys hkeys hlist hrlist zkeys zlist zrlist '
             'qlist qrlist qrange qslice qpop_back qpop_front',
             lambda r: r
-        ),        
+        ),
         {
             'qset': lambda r: True,
         }
@@ -204,7 +210,7 @@ class StrictSSDB(object):
         """
         Set a custom Response Callback
         """
-        self.response_callbacks[command] = callback    
+        self.response_callbacks[command] = callback
 
     #### COMMAND EXECUTION AND PROTOCOL PARSING ####
     def execute_command(self, *args, **options):
@@ -245,12 +251,12 @@ class StrictSSDB(object):
     def get(self, name):
         """
         Return the value at key ``name``, or ``None`` if the key doesn't exist
-        
+
         Like **Redis.GET**
 
-        
+
         :param string name: the key name
-        :return: the value at key ``name``, or ``None`` if the key doesn't exist        
+        :return: the value at key ``name``, or ``None`` if the key doesn't exist
         :rtype: string
 
         >>> ssdb.get("set_abc")
@@ -260,14 +266,14 @@ class StrictSSDB(object):
         >>> ssdb.get("set_b")
         'b'
         >>> ssdb.get("not_exists_abc")
-        >>> 
-        """        
+        >>>
+        """
         return self.execute_command('get', name)
-    
+
     def set(self, name, value):
         """
         Set the value at key ``name`` to ``value`` .
-        
+
         Like **Redis.SET**
 
         :param string name: the key name
@@ -278,18 +284,18 @@ class StrictSSDB(object):
         >>> ssdb.set("set_cde", 'cde')
         True
         >>> ssdb.set("set_cde", 'test')
-        True        
+        True
         >>> ssdb.set("hundred", 100)
         True
         """
-        return self.execute_command('set', name, value)    
+        return self.execute_command('set', name, value)
     add = set
 
     def setnx(self, name, value):
         """
         Set the value at key ``name`` to ``value`` if and only if the key
         doesn't exist.
-        
+
         Like **Redis.SETNX**
 
         :param string name: the key name
@@ -300,7 +306,7 @@ class StrictSSDB(object):
         >>> ssdb.setnx("setnx_test", 'abc')
         True
         >>> ssdb.setnx("setnx_test", 'cde')
-        False        
+        False
         """
         return self.execute_command('setnx', name, value)
 
@@ -308,7 +314,7 @@ class StrictSSDB(object):
         """
         Set the value at key ``name`` to ``value`` if key doesn't exist
         Return the value at key ``name`` atomically.
-        
+
         Like **Redis.GETSET**
 
         :param string name: the key name
@@ -325,7 +331,7 @@ class StrictSSDB(object):
         >>> ssdb.getset("getset_a", 123)
         'ABC'
         """
-        return self.execute_command('getset', name, value)    
+        return self.execute_command('getset', name, value)
 
     def delete(self, name):
         """
@@ -334,8 +340,8 @@ class StrictSSDB(object):
         Like **Redis.DELETE**
 
         .. note:: ``Delete`` **can't delete** the `Hash`_ or `Zsets`_, use
-           `hclear`_ for `Hash`_ and `zclear`_ for `Zsets`_ 
-           
+           `hclear`_ for `Hash`_ and `zclear`_ for `Zsets`_
+
         :param string name: the key name
         :return: ``True`` on deleting successfully, or ``False`` if the key doesn't
          exist or failure
@@ -344,7 +350,7 @@ class StrictSSDB(object):
         >>> ssdb.delete('set_abc')
         True
         >>> ssdb.delete('set_a')
-        True        
+        True
         >>> ssdb.delete('set_abc')
         False
         >>> ssdb.delete('not_exist')
@@ -356,12 +362,12 @@ class StrictSSDB(object):
     def expire(self, name, ttl):
         """
         Set an expire flag on key ``name`` for ``ttl`` seconds. ``ttl``
-        can be represented by an integer or a Python timedelta object.        
+        can be represented by an integer or a Python timedelta object.
 
         Like **Redis.EXPIRE**
 
         .. note:: ``Expire`` **only expire** the `Key/Value`_ .
-           
+
         :param string name: the key name
         :param int ttl: number of seconds to live
         :return: ``True`` on success, or ``False`` if the key doesn't
@@ -374,7 +380,7 @@ class StrictSSDB(object):
         False
         """
         if isinstance(time, datetime.timedelta):
-            time = time.seconds + time.days * 24 * 3600        
+            time = time.seconds + time.days * 24 * 3600
         return self.execute_command('expire', name, ttl)
 
     def ttl(self, name):
@@ -384,7 +390,7 @@ class StrictSSDB(object):
         Like **Redis.TTL**
 
         .. note:: ``ttl`` **can only** be used to the `Key/Value`_ .
-           
+
         :param string name: the key name
         :return: the number of seconds, or ``-1`` if the key doesn't
          exist or have no ttl
@@ -396,8 +402,8 @@ class StrictSSDB(object):
         -1
         """
         if isinstance(time, datetime.timedelta):
-            time = time.seconds + time.days * 24 * 3600        
-        return self.execute_command('expire', name, ttl)    
+            time = time.seconds + time.days * 24 * 3600
+        return self.execute_command('expire', name, ttl)
 
     def exists(self, name):
         """
@@ -408,7 +414,7 @@ class StrictSSDB(object):
         .. note:: ``exists`` **can't indicate** whether any `Hash`_, `Zsets`_
          or `Queue`_ exists, use `hash_exists`_ for `Hash`_ , `zset_exists`_
          for `Zsets`_ and `queue_exists`_ for `Queue`_ .
-        
+
 
         :param string name: the key name
         :return: ``True`` if the key exists, ``False`` if not
@@ -419,8 +425,8 @@ class StrictSSDB(object):
         >>> ssdb.exists('set_a')
         True
         >>> ssdb.exists('not_exist')
-        False        
-        """        
+        False
+        """
         return self.execute_command('exists', name)
 
     def incr(self, name, amount=1):
@@ -442,8 +448,8 @@ class StrictSSDB(object):
         >>> ssdb.incr('set_count', -2)
         12
         >>> ssdb.incr('temp_count', 42)
-        42        
-        """                
+        42
+        """
         amount = get_integer('amount', amount)
         return self.execute_command('incr', name, amount)
 
@@ -464,8 +470,8 @@ class StrictSSDB(object):
         >>> ssdb.decr('set_count', 1)
         6
         >>> ssdb.decr('temp_count', 42)
-        -42                
-        """                        
+        -42
+        """
         amount = get_positive_integer('amount', amount)
         return self.execute_command('decr', name, amount)
 
@@ -481,30 +487,30 @@ class StrictSSDB(object):
         :return: the bit at the ``offset`` , ``False`` if key doesn't exist or
          offset exceeds the string length.
         :rtype: bool
-        
+
         >>> ssdb.set('bit_test', 1)
         True
         >>> ssdb.getbit('bit_test', 0)
         True
         >>> ssdb.getbit('bit_test', 1)
         False
-        """                        
+        """
         offset = get_positive_integer('offset', offset)
         return self.execute_command('getbit', name, offset)
 
     def setbit(self, name, offset, val):
         """
         Flag the ``offset`` in ``name`` as ``value``. Returns a boolean
-        indicating the previous value of ``offset``.        
+        indicating the previous value of ``offset``.
 
-        Like **Redis.SETBIT**        
+        Like **Redis.SETBIT**
 
         :param string name: the key name
         :param int offset: the bit position
         :param bool val: the bit value
         :return: the previous bit (False or True) at the ``offset``
         :rtype: bool
-        
+
         >>> ssdb.set('bit_test', 1)
         True
         >>> ssdb.setbit('bit_test', 1, 1)
@@ -514,8 +520,8 @@ class StrictSSDB(object):
         >>> ssdb.setbit('bit_test', 2, 1)
         False
         >>> ssdb.get('bit_test')
-        7        
-        """                        
+        7
+        """
         val = int(get_boolean('val', val))
         offset = get_positive_integer('offset', offset)
         return self.execute_command('setbit', name, offset, val)
@@ -534,7 +540,7 @@ class StrictSSDB(object):
          characters will be omitted from the end of string.
         :return: the count of the bit 1
         :rtype: int
-        
+
         >>> ssdb.set('bit_test', 1)
         True
         >>> ssdb.countbit('bit_test')
@@ -551,7 +557,7 @@ class StrictSSDB(object):
             size = get_integer('size', size)
             return self.execute_command('countbit', name, start, size)
         elif start is not None:
-            start = get_integer('start', start)            
+            start = get_integer('start', start)
             return self.execute_command('countbit', name, start)
         return self.execute_command('countbit', name)
     bitcount = countbit
@@ -571,7 +577,7 @@ class StrictSSDB(object):
          negative, then that many characters will be omitted from the end of string.
         :return: The extracted part of the string.
         :rtype: string
-        
+
         >>> ssdb.set('str_test', 'abc12345678')
         True
         >>> ssdb.substr('str_test', 2, 4)
@@ -586,7 +592,7 @@ class StrictSSDB(object):
             size = get_integer('size', size)
             return self.execute_command('substr', name, start, size)
         elif start is not None:
-            start = get_integer('start', start)            
+            start = get_integer('start', start)
             return self.execute_command('substr', name, start)
         return self.execute_command('substr', name)
 
@@ -594,12 +600,12 @@ class StrictSSDB(object):
         """
         Return the number of bytes stored in the value of ``name``
 
-        Like **Redis.STRLEN**        
+        Like **Redis.STRLEN**
 
         :param string name: the key name
         :return: The number of bytes of the string, if key not exists, returns 0.
         :rtype: int
-        
+
         >>> ssdb.set('str_test', 'abc12345678')
         True
         >>> ssdb.strlen('str_test')
@@ -621,7 +627,7 @@ class StrictSSDB(object):
         4
         >>> ssdb.multi_set(set_abc='abc',set_count=10)
         2
-        """        
+        """
         return self.execute_command('multi_set', *dict_to_list(kvs))
     mset = multi_set
 
@@ -629,7 +635,7 @@ class StrictSSDB(object):
         """
         Return a dictionary mapping key/value by ``names``
 
-        Like **Redis.MGET**        
+        Like **Redis.MGET**
 
         :param list names: a list of keys
         :return: a dict mapping key/value
@@ -639,7 +645,7 @@ class StrictSSDB(object):
         {'a': 'a', 'c': 'c', 'b': 'b', 'd': 'd'}
         >>> ssdb.multi_get('set_abc','set_count')
         {'set_abc': 'set_abc', 'set_count': '10'}
-        """                
+        """
         return self.execute_command('multi_get', *names)
     mget = multi_get
 
@@ -647,7 +653,7 @@ class StrictSSDB(object):
         """
         Delete one or more keys specified by ``names``
 
-        Like **Redis.DELETE**        
+        Like **Redis.DELETE**
 
         :param list names: a list of keys
         :return: the number of successful deletion
@@ -666,7 +672,7 @@ class StrictSSDB(object):
         Return a list of the top ``limit`` keys between ``name_start`` and
         ``name_end``
 
-        Similiar with **Redis.KEYS**        
+        Similiar with **Redis.KEYS**
 
         .. note:: The range is (``name_start``, ``name_end``]. ``name_start``
            isn't in the range, but ``name_end`` is.
@@ -678,7 +684,7 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a list of keys
         :rtype: list
-        
+
         >>> ssdb.keys('set_x1', 'set_x3', 10)
         ['set_x2', 'set_x3']
         >>> ssdb.keys('set_x ', 'set_xx', 3)
@@ -696,7 +702,7 @@ class StrictSSDB(object):
         Scan and return a dict mapping key/value in the top ``limit`` keys between
         ``name_start`` and ``name_end`` in ascending order
 
-        Similiar with **Redis.SCAN**        
+        Similiar with **Redis.SCAN**
 
         .. note:: The range is (``name_start``, ``name_end``]. ``name_start``
            isn't in the range, but ``name_end`` is.
@@ -708,7 +714,7 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a dict mapping key/value in ascending order
         :rtype: OrderedDict
-        
+
         >>> ssdb.scan('set_x1', 'set_x3', 10)
         {'set_x2': 'x2', 'set_x3': 'x3'}
         >>> ssdb.scan('set_x ', 'set_xx', 3)
@@ -717,8 +723,8 @@ class StrictSSDB(object):
         {'set_x1': 'x1', 'set_x2': 'x2', 'set_x3': 'x3', 'set_x4': 'x4'}
         >>> ssdb.scan('set_zzzzz ', '', 10)
         {}
-        """        
-        limit = get_positive_integer('limit', limit)        
+        """
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('scan', name_start, name_end, limit)
 
     def rscan(self, name_start, name_end, limit=10):
@@ -736,7 +742,7 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a dict mapping key/value in descending order
         :rtype: OrderedDict
-        
+
         >>> ssdb.scan('set_x3', 'set_x1', 10)
         {'set_x2': 'x2', 'set_x1': 'x1'}
         >>> ssdb.scan('set_xx', 'set_x ', 3)
@@ -745,8 +751,8 @@ class StrictSSDB(object):
         {'set_x4': 'x4', 'set_x3': 'x3', 'set_x2': 'x2', 'set_x1': 'x1'}
         >>> ssdb.scan('', 'set_zzzzz', 10)
         {}
-        """                
-        limit = get_positive_integer('limit', limit)        
+        """
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('rscan', name_start, name_end, limit)
 
     #### HASH OPERATION ####
@@ -754,7 +760,7 @@ class StrictSSDB(object):
         """
         Get the value of ``key`` within the hash ``name``
 
-        Like **Redis.HGET**        
+        Like **Redis.HGET**
 
         :param string name: the hash name
         :param string key: the key name
@@ -770,21 +776,21 @@ class StrictSSDB(object):
         >>>
         >>> ssdb.hget("hash_2", 'key1')
         '42'
-        """                
+        """
         return self.execute_command('hget', name, key)
 
     def hset(self, name, key, value):
         """
         Set the value of ``key`` within the hash ``name`` to ``value``
 
-        Like **Redis.HSET**        
+        Like **Redis.HSET**
 
         :param string name: the hash name
         :param string key: the key name
         :param string value: a string or an object can be converted to string
         :return: ``True`` if ``hset`` created a new field, otherwise ``False``
         :rtype: bool
-        
+
         >>> ssdb.hset("hash_3", 'yellow', '#FFFF00')
         True
         >>> ssdb.hset("hash_3", 'red', '#FF0000')
@@ -793,7 +799,7 @@ class StrictSSDB(object):
         True
         >>> ssdb.hset("hash_3", 'yellow', '#FFFF00')
         False
-        """        
+        """
         return self.execute_command('hset', name, key, value)
     hadd = hset
 
@@ -801,7 +807,7 @@ class StrictSSDB(object):
         """
         Remove the ``key`` from hash ``name``
 
-        Like **Redis.HDEL**        
+        Like **Redis.HDEL**
 
         :param string name: the hash name
         :param string key: the key name
@@ -839,17 +845,17 @@ class StrictSSDB(object):
         6
         >>> ssdb.hclear('not_exist')
         0
-        """        
+        """
         return self.execute_command('hclear', name)
 
     def hexists(self, name, key):
         """
         Return a boolean indicating whether ``key`` exists within hash ``name``
 
-        Like **Redis.HEXISTS**        
+        Like **Redis.HEXISTS**
 
         :param string name: the hash name
-        :param string key: the key name        
+        :param string key: the key name
         :return: ``True`` if the key exists, ``False`` if not
         :rtype: bool
 
@@ -862,8 +868,8 @@ class StrictSSDB(object):
         >>> ssdb.hexists('hash_1', 'z_not_exists')
         False
         >>> ssdb.hexists('hash_not_exist', 'key_not_exists')
-        False                        
-        """                
+        False
+        """
         return self.execute_command('hexists', name, key)
 
     def hincr(self, name, key, amount=1):
@@ -871,10 +877,10 @@ class StrictSSDB(object):
         Increase the value of ``key`` in hash ``name`` by ``amount``. If no key
         exists, the value will be initialized as ``amount``
 
-        Like **Redis.HINCR**        
+        Like **Redis.HINCR**
 
         :param string name: the hash name
-        :param string key: the key name        
+        :param string key: the key name
         :param int amount: increments
         :return: the integer value of ``key`` in hash ``name``
         :rtype: int
@@ -887,17 +893,17 @@ class StrictSSDB(object):
         101
         >>> ssdb.hincr('hash_not_exists', 'key_not_exists', 8848)
         8848
-        """                        
-        amount = get_integer('amount', amount)        
+        """
+        amount = get_integer('amount', amount)
         return self.execute_command('hincr', name, key, amount)
 
     def hdecr(self, name, key, amount=1):
         """
         Decrease the value of ``key`` in hash ``name`` by ``amount``. If no key
-        exists, the value will be initialized as 0 - ``amount`` 
+        exists, the value will be initialized as 0 - ``amount``
 
         :param string name: the hash name
-        :param string key: the key name        
+        :param string key: the key name
         :param int amount: increments
         :return: the integer value of ``key`` in hash ``name``
         :rtype: int
@@ -910,16 +916,16 @@ class StrictSSDB(object):
         -101
         >>> ssdb.hdecr('hash_not_exists', 'key_not_exists', 8848)
         -8848
-        """                                
-        amount = get_positive_integer('amount', amount)        
+        """
+        amount = get_positive_integer('amount', amount)
         return self.execute_command('hdecr', name, key, amount)
 
     def hsize(self, name):
         """
         Return the number of elements in hash ``name``
 
-        Like **Redis.HLEN**        
-        
+        Like **Redis.HLEN**
+
         :param string name: the hash name
         :return: the size of hash `name``
         :rtype: int
@@ -930,7 +936,7 @@ class StrictSSDB(object):
         6
         >>> ssdb.hsize('hash_not_exists')
         0
-        """                                        
+        """
         return self.execute_command('hsize', name)
     hlen=hsize
 
@@ -941,7 +947,7 @@ class StrictSSDB(object):
 
         Like **Redis.HMSET**
 
-        :param string name: the hash name        
+        :param string name: the hash name
         :param list keys: a list of keys
         :return: the number of successful creation
         :rtype: int
@@ -951,8 +957,8 @@ class StrictSSDB(object):
         >>> ssdb.multi_hset('hash_4', a='AA', b='BB', c='CC', d='DD')
         0
         >>> ssdb.multi_hset('hash_4', a='AA', b='BB', c='CC', d='DD', e='EE')
-        1        
-        """                                
+        1
+        """
         return self.execute_command('multi_hset', name, *dict_to_list(kvs))
     hmset = multi_hset
 
@@ -960,9 +966,9 @@ class StrictSSDB(object):
         """
         Return a dictionary mapping key/value by ``keys`` from hash ``names``
 
-        Like **Redis.HMGET**        
+        Like **Redis.HMGET**
 
-        :param string name: the hash name        
+        :param string name: the hash name
         :param list keys: a list of keys
         :return: a dict mapping key/value
         :rtype: dict
@@ -979,9 +985,9 @@ class StrictSSDB(object):
         """
         Remove ``keys`` from hash ``name``
 
-        Like **Redis.HMDEL**        
+        Like **Redis.HMDEL**
 
-        :param string name: the hash name        
+        :param string name: the hash name
         :param list keys: a list of keys
         :return: the number of successful deletion
         :rtype: int
@@ -989,7 +995,7 @@ class StrictSSDB(object):
         >>> ssdb.multi_hdel('hash_1', 'a', 'b', 'c', 'd')
         4
         >>> ssdb.multi_hdel('hash_1', 'a', 'b', 'c', 'd')
-        0        
+        0
         >>> ssdb.multi_hdel('hash_2', 'key2_not_exist', 'key5_not_exist')
         0
         """
@@ -1001,7 +1007,7 @@ class StrictSSDB(object):
         Return a list of the top ``limit`` keys between ``key_start`` and
         ``key_end`` in hash ``name``
 
-        Similiar with **Redis.HKEYS**        
+        Similiar with **Redis.HKEYS**
 
         .. note:: The range is (``key_start``, ``key_end``]. The ``key_start``
            isn't in the range, but ``key_end`` is.
@@ -1014,7 +1020,7 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a list of keys
         :rtype: list
-        
+
         >>> ssdb.hkeys('hash_1', 'a', 'g', 10)
         ['b', 'c', 'd', 'e', 'f', 'g']
         >>> ssdb.hkeys('hash_2', 'key ', 'key4', 3)
@@ -1023,7 +1029,7 @@ class StrictSSDB(object):
         ['g']
         >>> ssdb.hkeys('hash_2', 'keys', '', 10)
         []
-        """        
+        """
         limit = get_positive_integer('limit', limit)
         return self.execute_command('hkeys', name, key_start, key_end, limit)
 
@@ -1031,16 +1037,16 @@ class StrictSSDB(object):
         """
         Return a Python dict of the hash's name/value pairs
 
-        Like **Redis.HGETALL** 
+        Like **Redis.HGETALL**
 
         :param string name: the hash name
         :return: a dict mapping key/value
         :rtype: dict
-        
+
         >>> ssdb.hgetall('hash_1')
         {"a":'aa',"b":'bb',"c":'cc'}
-        """        
-        return self.execute_command('hgetall', name)    
+        """
+        return self.execute_command('hgetall', name)
 
     def hlist(self, name_start, name_end, limit=10):
         """
@@ -1057,14 +1063,14 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a list of hash's name
         :rtype: list
-        
+
         >>> ssdb.hlist('hash_ ', 'hash_z', 10)
         ['hash_1', 'hash_2']
         >>> ssdb.hlist('hash_ ', '', 3)
         ['hash_1', 'hash_2']
         >>> ssdb.hlist('', 'aaa_not_exist', 10)
         []
-        """                
+        """
         limit = get_positive_integer('limit', limit)
         return self.execute_command('hlist', name_start, name_end, limit)
 
@@ -1083,16 +1089,16 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a list of hash's name
         :rtype: list
-        
+
         >>> ssdb.hrlist('hash_ ', 'hash_z', 10)
         ['hash_2', 'hash_1']
         >>> ssdb.hrlist('hash_ ', '', 3)
         ['hash_2', 'hash_1']
         >>> ssdb.hrlist('', 'aaa_not_exist', 10)
         []
-        """                
+        """
         limit = get_positive_integer('limit', limit)
-        return self.execute_command('hrlist', name_start, name_end, limit)        
+        return self.execute_command('hrlist', name_start, name_end, limit)
 
     def hscan(self, name, key_start, key_end, limit=10):
         """
@@ -1112,7 +1118,7 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a dict mapping key/value in ascending order
         :rtype: OrderedDict
-        
+
         >>> ssdb.hscan('hash_1', 'a', 'g', 10)
         {'b': 'B', 'c': 'C', 'd': 'D', 'e': 'E', 'f': 'F', 'g': 'G'}
         >>> ssdb.hscan('hash_2', 'key ', 'key4', 3)
@@ -1121,11 +1127,11 @@ class StrictSSDB(object):
         {'g': 'G'}
         >>> ssdb.hscan('hash_2', 'keys', '', 10)
         {}
-        """                
-        limit = get_positive_integer('limit', limit)        
+        """
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('hscan', name, key_start, key_end, limit)
 
-    
+
     def hrscan(self, name, key_start, key_end, limit=10):
         """
         Return a dict mapping key/value in the top ``limit`` keys between
@@ -1142,7 +1148,7 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a dict mapping key/value in descending order
         :rtype: OrderedDict
-        
+
         >>> ssdb.hrscan('hash_1', 'g', 'a', 10)
         {'f': 'F', 'e': 'E', 'd': 'D', 'c': 'C', 'b': 'B', 'a': 'A'}
         >>> ssdb.hrscan('hash_2', 'key7', 'key1', 3)
@@ -1150,9 +1156,9 @@ class StrictSSDB(object):
         >>> ssdb.hrscan('hash_1', 'c', '', 10)
         {'b': 'B', 'a': 'A'}
         >>> ssdb.hscan('hash_2', 'keys', '', 10)
-        {}        
+        {}
         """
-        limit = get_positive_integer('limit', limit)        
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('hrscan', name, key_start, key_end, limit)
 
     #### ZSET OPERATION ####
@@ -1175,9 +1181,9 @@ class StrictSSDB(object):
         >>> ssdb.zset("zset_2", 'key_10', -4)
         >>>
         >>> ssdb.zget("zset_2", 'key1')
-        42        
+        42
         """
-        score = get_integer('score', score)        
+        score = get_integer('score', score)
         return self.execute_command('zset', name, key, score)
     zadd = zset
 
@@ -1185,7 +1191,7 @@ class StrictSSDB(object):
         """
         Return the score of element ``key`` in sorted set ``name``
 
-        Like **Redis.ZSCORE**        
+        Like **Redis.ZSCORE**
 
         :param string name: the zset name
         :param string key: the key name
@@ -1200,7 +1206,7 @@ class StrictSSDB(object):
         >>>
         >>> ssdb.zget("zset_2", 'key1')
         42
-        """        
+        """
         return self.execute_command('zget', name, key)
     zscore = zget
 
@@ -1224,8 +1230,8 @@ class StrictSSDB(object):
         >>> ssdb.zdel("zset_2", 'key_not_exist')
         False
         >>> ssdb.zdel("zset_not_exist", 'key1')
-        False        
-        """                
+        False
+        """
 
         return self.execute_command('zdel', name, key)
     zremove = zdel
@@ -1247,7 +1253,7 @@ class StrictSSDB(object):
         6
         >>> ssdb.zclear('not_exist')
         0
-        """                
+        """
         return self.execute_command('zclear', name)
 
     def zexists(self, name, key):
@@ -1255,7 +1261,7 @@ class StrictSSDB(object):
         Return a boolean indicating whether ``key`` exists within zset ``name``
 
         :param string name: the zset name
-        :param string key: the key name        
+        :param string key: the key name
         :return: ``True`` if the key exists, ``False`` if not
         :rtype: bool
 
@@ -1268,8 +1274,8 @@ class StrictSSDB(object):
         >>> ssdb.zexists('zset_1', 'z_not_exists')
         False
         >>> ssdb.zexists('zset_not_exist', 'key_not_exists')
-        False                        
-        """                        
+        False
+        """
         return self.execute_command('zexists', name, key)
 
     def zincr(self, name, key, amount=1):
@@ -1280,7 +1286,7 @@ class StrictSSDB(object):
         Like **Redis.ZINCR**
 
         :param string name: the zset name
-        :param string key: the key name        
+        :param string key: the key name
         :param int amount: increments
         :return: the integer value of ``key`` in zset ``name``
         :rtype: int
@@ -1293,17 +1299,17 @@ class StrictSSDB(object):
         101
         >>> ssdb.zincr('zset_not_exists', 'key_not_exists', 8848)
         8848
-        """                                
-        amount = get_integer('amount', amount)        
+        """
+        amount = get_integer('amount', amount)
         return self.execute_command('zincr', name, key, amount)
 
     def zdecr(self, name, key, amount=1):
         """
         Decrease the value of ``key`` in zset ``name`` by ``amount``. If no key
-        exists, the value will be initialized as 0 - ``amount`` 
+        exists, the value will be initialized as 0 - ``amount``
 
         :param string name: the zset name
-        :param string key: the key name        
+        :param string key: the key name
         :param int amount: increments
         :return: the integer value of ``key`` in zset ``name``
         :rtype: int
@@ -1316,16 +1322,16 @@ class StrictSSDB(object):
         -101
         >>> ssdb.zdecr('zset_not_exists', 'key_not_exists', 8848)
         -8848
-        """                                        
+        """
         amount = get_positive_integer('amount', amount)
         return self.execute_command('zdecr', name, key, amount)
 
     def zsize(self, name):
         """
-        Return the number of elements in zset ``name`` 
+        Return the number of elements in zset ``name``
 
         Like **Redis.ZCARD**
-        
+
         :param string name: the zset name
         :return: the size of zset `name``
         :rtype: int
@@ -1336,7 +1342,7 @@ class StrictSSDB(object):
         6
         >>> ssdb.zsize('zset_not_exists')
         0
-        """        
+        """
         return self.execute_command('zsize', name)
     zlen = zsize
     zcard = zsize
@@ -1345,7 +1351,7 @@ class StrictSSDB(object):
         """
         Return a dictionary mapping key/value by ``keys`` from zset ``names``
 
-        :param string name: the zset name        
+        :param string name: the zset name
         :param list keys: a list of keys
         :return: the number of successful creation
         :rtype: int
@@ -1355,8 +1361,8 @@ class StrictSSDB(object):
         >>> ssdb.multi_zset('zset_4', a=100, b=80, c=90, d=70)
         0
         >>> ssdb.multi_zset('zset_4', a=100, b=80, c=90, d=70, e=60)
-        1        
-        """                                        
+        1
+        """
         for k,v in kvs.items():
             kvs[k] = get_integer(k, int(v))
         return self.execute_command('multi_zset', name, *dict_to_list(kvs))
@@ -1366,7 +1372,7 @@ class StrictSSDB(object):
         """
         Return a dictionary mapping key/value by ``keys`` from zset ``names``
 
-        :param string name: the zset name        
+        :param string name: the zset name
         :param list keys: a list of keys
         :return: a dict mapping key/value
         :rtype: dict
@@ -1375,7 +1381,7 @@ class StrictSSDB(object):
         {'a': 30, 'c': 100, 'b': 20, 'd': 1}
         >>> ssdb.multi_zget('zset_2', 'key2', 'key5')
         {'key2': 314, 'key5': 0}
-        """                                
+        """
         return self.execute_command('multi_zget', name, *keys)
     zmget = multi_zget
 
@@ -1383,7 +1389,7 @@ class StrictSSDB(object):
         """
         Remove ``keys`` from zset ``name``
 
-        :param string name: the zset name        
+        :param string name: the zset name
         :param list keys: a list of keys
         :return: the number of successful deletion
         :rtype: int
@@ -1391,10 +1397,10 @@ class StrictSSDB(object):
         >>> ssdb.multi_zdel('zset_1', 'a', 'b', 'c', 'd')
         4
         >>> ssdb.multi_zdel('zset_1', 'a', 'b', 'c', 'd')
-        0        
+        0
         >>> ssdb.multi_zdel('zset_2', 'key2_not_exist', 'key5_not_exist')
         0
-        """        
+        """
         return self.execute_command('multi_zdel', name, *keys)
     zmdel = multi_zdel
 
@@ -1413,14 +1419,14 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a list of zset's name
         :rtype: list
-        
+
         >>> ssdb.zlist('zset_ ', 'zset_z', 10)
         ['zset_1', 'zset_2']
         >>> ssdb.zlist('zset_ ', '', 3)
         ['zset_1', 'zset_2']
         >>> ssdb.zlist('', 'aaa_not_exist', 10)
         []
-        """        
+        """
         limit = get_positive_integer('limit', limit)
         return self.execute_command('zlist', name_start, name_end, limit)
 
@@ -1439,21 +1445,21 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a list of zset's name
         :rtype: list
-        
+
         >>> ssdb.zlist('zset_ ', 'zset_z', 10)
         ['zset_2', 'zset_1']
         >>> ssdb.zlist('zset_ ', '', 3)
         ['zset_2', 'zset_1']
         >>> ssdb.zlist('', 'aaa_not_exist', 10)
         []
-        """        
+        """
         limit = get_positive_integer('limit', limit)
         return self.execute_command('zrlist', name_start, name_end, limit)
 
     def zkeys(self, name, key_start, score_start, score_end, limit=10):
         """
         Return a list of the top ``limit`` keys after ``key_start`` from zset
-        ``name`` with scores between ``score_start`` and ``score_end`` 
+        ``name`` with scores between ``score_start`` and ``score_end``
 
         .. note:: The range is (``key_start``+``score_start``, ``key_end``]. That
            means (key.score == score_start && key > key_start || key.score >
@@ -1476,12 +1482,12 @@ class StrictSSDB(object):
         ['a', 'e', 'c']
         >>> ssdb.zkeys('zset_1', 'c', 100, 200, 3)
         []
-        """                
+        """
         score_start = get_integer_or_emptystring('score_start', score_start)
-        score_end = get_integer_or_emptystring('score_end', score_end)        
+        score_end = get_integer_or_emptystring('score_end', score_end)
         limit = get_positive_integer('limit', limit)
         return self.execute_command('zkeys', name, key_start, score_start,
-                                    score_end, limit)    
+                                    score_end, limit)
 
     def zscan(self, name, key_start, score_start, score_end, limit=10):
         """
@@ -1493,7 +1499,7 @@ class StrictSSDB(object):
 
         .. note:: The range is (``key_start``+``score_start``, ``key_end``]. That
            means (key.score == score_start && key > key_start || key.score >
-           score_start)           
+           score_start)
 
         :param string name: the zset name
         :param string key_start: The key related to score_start, could be empty
@@ -1505,7 +1511,7 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned.
         :return: a dict mapping key/score in ascending order
         :rtype: OrderedDict
-        
+
         >>> ssdb.zscan('zset_1', '', 0, 200, 10)
         {'g': 0, 'd': 1, 'b': 20, 'a': 30, 'e': 64, 'c': 100}
         >>> ssdb.zscan('zset_1', '', 0, 200, 3)
@@ -1514,10 +1520,10 @@ class StrictSSDB(object):
         {'a': 30, 'e': 64, 'c': 100}
         >>> ssdb.zscan('zset_1', 'c', 100, 200, 3)
         {}
-        """        
+        """
         score_start = get_integer_or_emptystring('score_start', score_start)
         score_end = get_integer_or_emptystring('score_end', score_end)
-        limit = get_positive_integer('limit', limit)        
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('zscan', name, key_start, score_start,
                                     score_end, limit)
 
@@ -1537,11 +1543,11 @@ class StrictSSDB(object):
         :param int score_start: The maximum score related to keys(may not be
          included, depend on key_start), empty string ``''`` means +inf
         :param int score_end: The minimum score(included) related to keys,
-         empty string ``''`` means -inf        
+         empty string ``''`` means -inf
         :param int limit: number of elements will be returned.
         :return: a dict mapping key/score in descending order
         :rtype: OrderedDict
-        
+
         >>> ssdb.zrscan('zset_1', '', '', '', 10)
         {'c': 100, 'e': 64, 'a': 30, 'b': 20, 'd': 1, 'g': 0, 'f': -3}
         >>> ssdb.zrscan('zset_1', '', 1000, -1000, 3)
@@ -1550,10 +1556,10 @@ class StrictSSDB(object):
         {'b': 20, 'd': 1, 'g': 0}
         >>> ssdb.zrscan('zset_1', 'g', 0, -1000, 3)
         {'g': 0}
-        """       
+        """
         score_start = get_integer_or_emptystring('score_start', score_start)
-        score_end = get_integer_or_emptystring('score_end', score_end)                
-        limit = get_positive_integer('limit', limit)        
+        score_end = get_integer_or_emptystring('score_end', score_end)
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('zrscan', name, key_start, score_start,
                                     score_end, limit)
 
@@ -1565,9 +1571,9 @@ class StrictSSDB(object):
 
         .. warning:: This method may be extremly SLOW! May not be used in an
            online service.
-           
+
         :param string name: the zset name
-        :param string key: the key name     
+        :param string key: the key name
         :return: the rank of ``key`` in zset ``name``, **-1** if the ``key`` or
          the ``name`` doesn't exists
         :rtype: int
@@ -1578,19 +1584,19 @@ class StrictSSDB(object):
         0
         >>> ssdb.zrank('zset_1','x')
         -1
-        """        
+        """
         return self.execute_command('zrank', name, key)
 
     def zrrank(self, name, key):
         """
         Returns a 0-based value indicating the descending rank of ``key`` in
         zset
-        
+
         .. warning:: This method may be extremly SLOW! May not be used in an
            online service.
-           
+
         :param string name: the zset name
-        :param string key: the key name     
+        :param string key: the key name
         :return: the reverse rank of ``key`` in zset ``name``, **-1** if the
          ``key`` or the ``name`` doesn't exists
         :rtype: int
@@ -1601,7 +1607,7 @@ class StrictSSDB(object):
         6
         >>> ssdb.zrrank('zset_1','x')
         -1
-        """                
+        """
         return self.execute_command('zrrank', name, key)
 
     def zrange(self, name, offset, limit):
@@ -1609,10 +1615,10 @@ class StrictSSDB(object):
         Return a dict mapping key/score in a range of score from zset ``name``
         between ``offset`` and ``offset+limit`` sorted in ascending order.
 
-        Like **Redis.ZRANGE**                
-        
+        Like **Redis.ZRANGE**
+
         .. warning:: This method is SLOW for large offset!
-           
+
         :param string name: the zset name
         :param int offset: zero or positive,the returned pairs will start at
          this offset
@@ -1627,17 +1633,17 @@ class StrictSSDB(object):
         >>> ssdb.zrange('zset_1', 10, 10)
         {}
         """
-        offset = get_nonnegative_integer('offset', offset)        
-        limit = get_positive_integer('limit', limit)        
+        offset = get_nonnegative_integer('offset', offset)
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('zrange', name, offset, limit)
 
     def zrrange(self, name, offset, limit):
         """
         Return a dict mapping key/score in a range of score from zset ``name``
-        between ``offset`` and ``offset+limit`` sorted in descending order.        
-        
+        between ``offset`` and ``offset+limit`` sorted in descending order.
+
         .. warning:: This method is SLOW for large offset!
-           
+
         :param string name: the zset name
         :param int offset: zero or positive,the returned pairs will start at
          this offset
@@ -1650,10 +1656,10 @@ class StrictSSDB(object):
         >>> ssdb.zrrange('zset_1', 4, 5)
         {'d': 1, 'g': 0, 'f': -3}
         >>> ssdb.zrrange('zset_1', 10, 10)
-        {}        
-        """        
-        offset = get_nonnegative_integer('offset', offset)        
-        limit = get_positive_integer('limit', limit)        
+        {}
+        """
+        offset = get_nonnegative_integer('offset', offset)
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('zrrange', name, offset, limit)
 
 
@@ -1673,14 +1679,14 @@ class StrictSSDB(object):
          empty string ``''`` means +inf
         :return: the number of keys in specified range
         :rtype: int
-        
+
         >>> ssdb.zount('zset_1', 20, 70)
         3
         >>> ssdb.zcount('zset_1', 0, 100)
         6
         >>> ssdb.zcount('zset_1', 2, 3)
         0
-        """        
+        """
         score_start = get_integer_or_emptystring('score_start', score_start)
         score_end = get_integer_or_emptystring('score_end', score_end)
         return self.execute_command('zcount', name, score_start, score_end)
@@ -1689,7 +1695,7 @@ class StrictSSDB(object):
         """
         Returns the sum of elements of the sorted set stored at the specified
         key which have scores in the range [score_start,score_end].
-        
+
         .. note:: The range is [``score_start``, ``score_end``]
 
         :param string name: the zset name
@@ -1699,14 +1705,14 @@ class StrictSSDB(object):
          empty string ``''`` means +inf
         :return: the sum of keys in specified range
         :rtype: int
-        
+
         >>> ssdb.zsum('zset_1', 20, 70)
         114
         >>> ssdb.zsum('zset_1', 0, 100)
         215
         >>> ssdb.zsum('zset_1', 2, 3)
         0
-        """        
+        """
         score_start = get_integer_or_emptystring('score_start', score_start)
         score_end = get_integer_or_emptystring('score_end', score_end)
         return self.execute_command('zsum', name, score_start, score_end)
@@ -1714,8 +1720,8 @@ class StrictSSDB(object):
     def zavg(self, name, score_start, score_end):
         """
         Returns the average of elements of the sorted set stored at the
-        specified key which have scores in the range [score_start,score_end].        
-        
+        specified key which have scores in the range [score_start,score_end].
+
         .. note:: The range is [``score_start``, ``score_end``]
 
         :param string name: the zset name
@@ -1725,14 +1731,14 @@ class StrictSSDB(object):
          empty string ``''`` means +inf
         :return: the average of keys in specified range
         :rtype: int
-        
+
         >>> ssdb.zavg('zset_1', 20, 70)
         38
         >>> ssdb.zavg('zset_1', 0, 100)
         35
         >>> ssdb.zavg('zset_1', 2, 3)
         0
-        """        
+        """
         score_start = get_integer_or_emptystring('score_start', score_start)
         score_end = get_integer_or_emptystring('score_end', score_end)
         return self.execute_command('zavg', name, score_start, score_end)
@@ -1741,7 +1747,7 @@ class StrictSSDB(object):
         """
         Remove the elements of the zset which have rank in the range
         [rank_start,rank_end].
-        
+
         .. note:: The range is [``rank_start``, ``rank_end``]
 
         :param string name: the zset name
@@ -1749,14 +1755,14 @@ class StrictSSDB(object):
         :param int rank_end: zero or positive,the end position
         :return: the number of deleted elements
         :rtype: int
-        
+
         >>> ssdb.zremrangebyrank('zset_1', 0, 2)
         3
         >>> ssdb.zremrangebyrank('zset_1', 1, 4)
         5
         >>> ssdb.zremrangebyrank('zset_1', 0, 0)
         1
-        """        
+        """
         rank_start = get_nonnegative_integer('rank_start', rank_start)
         rank_end = get_nonnegative_integer('rank_end', rank_end)
         return self.execute_command('zremrangebyrank', name, rank_start,
@@ -1766,24 +1772,24 @@ class StrictSSDB(object):
         """
         Delete the elements of the zset which have rank in the range
         [score_start,score_end].
-        
+
         .. note:: The range is [``score_start``, ``score_end``]
 
         :param string name: the zset name
         :param int score_start: The minimum score related to keys(included),
          empty string ``''`` means -inf
         :param int score_end: The maximum score(included) related to keys,
-         empty string ``''`` means +inf        
+         empty string ``''`` means +inf
         :return: the number of deleted elements
         :rtype: int
-        
+
         >>> ssdb.zremrangebyscore('zset_1', 20, 70)
         3
         >>> ssdb.zremrangebyscore('zset_1', 0, 100)
         6
         >>> ssdb.zremrangebyscore('zset_1', 2, 3)
-        0        
-        """        
+        0
+        """
         score_start = get_integer_or_emptystring('score_start', score_start)
         score_end = get_integer_or_emptystring('score_end', score_end)
         return self.execute_command('zremrangebyscore', name, score_start,
@@ -1803,19 +1809,19 @@ class StrictSSDB(object):
         """
         index = get_integer('index', index)
         return self.execute_command('qget', name, index)
-    
+
     def qset(self, name, index, value):
         """
-        Set the list element at ``index`` to ``value``. 
+        Set the list element at ``index`` to ``value``.
 
         :param string name: the queue name
         :param int index: the specified index, can < 0
         :param string value: the element value
         :return: Unknown
         :rtype: True
-        
+
         """
-        index = get_integer('index', index)        
+        index = get_integer('index', index)
         return self.execute_command('qset', name, index, value)
 
     def qpush_back(self, name, *items):
@@ -1828,7 +1834,7 @@ class StrictSSDB(object):
         :param list items: the list of items
         :return: length of queue
         :rtype: int
-        
+
         """
         return self.execute_command('qpush_back', name, *items)
     qpush=qpush_back
@@ -1844,7 +1850,7 @@ class StrictSSDB(object):
         :param string value: the element value
         :return: length of queue
         :rtype: int
-        
+
         """
         return self.execute_command('qpush_front', name, *items)
 
@@ -1852,13 +1858,13 @@ class StrictSSDB(object):
         """
         Remove and return the first ``size`` item of the list ``name``
 
-        Like **Redis.LPOP**        
+        Like **Redis.LPOP**
 
         :param string name: the queue name
         :param int size: the length of result
         :return: the list of pop elements
         :rtype: list
-        
+
         """
         size = get_positive_integer("size", size)
         return self.execute_command('qpop_front', name, size)
@@ -1874,7 +1880,7 @@ class StrictSSDB(object):
         :param int size: the length of result
         :return: the list of pop elements
         :rtype: list
-        
+
         """
         size = get_positive_integer("size", size)
         return self.execute_command('qpop_back', name, size)
@@ -1889,13 +1895,13 @@ class StrictSSDB(object):
         :param string name: the queue name
         :return: the queue length or 0 if the queue doesn't exist.
         :rtype: int
-        
+
         >>> ssdb.qsize('queue_1')
         7
         >>> ssdb.qsize('queue_2')
         6
         >>> ssdb.qsize('queue_not_exists')
-        0        
+        0
         """
         return self.execute_command('qsize', name)
     qlen = qsize
@@ -1909,7 +1915,7 @@ class StrictSSDB(object):
         :rtype: int
 
         """
-        return self.execute_command('qclear', name)    
+        return self.execute_command('qclear', name)
 
     def qlist(self, name_start, name_end, limit):
         """
@@ -1932,7 +1938,7 @@ class StrictSSDB(object):
         >>> ssdb.qlist('queue_', 'queue_2', 10)
         ['queue_1', 'queue_2']
         >>> ssdb.qlist('z', '', 10)
-        []        
+        []
         """
         limit = get_positive_integer("limit", limit)
         return self.execute_command('qlist', name_start, name_end, limit)
@@ -1966,22 +1972,22 @@ class StrictSSDB(object):
     def qfront(self, name):
         """
         Returns the first element of a queue.
-        
+
         :param string name: the queue name
         :return: ``None`` if queue empty, otherwise the item returned
         :rtype: string
-        
+
         """
         return self.execute_command('qfront', name)
 
     def qback(self, name):
         """
         Returns the last element of a queue.
-        
+
         :param string name: the queue name
         :return: ``None`` if queue empty, otherwise the item returned
         :rtype: string
-        
+
         """
         return self.execute_command('qback', name)
 
@@ -1998,10 +2004,10 @@ class StrictSSDB(object):
         :param int limit: number of elements will be returned
         :return: a list of elements
         :rtype: list
-        
+
         """
-        offset = get_integer('offset', offset)        
-        limit = get_positive_integer('limit', limit)                
+        offset = get_integer('offset', offset)
+        limit = get_positive_integer('limit', limit)
         return self.execute_command('qrange', name, offset, limit)
 
     def qslice(self, name, start, end):
@@ -2033,22 +2039,22 @@ class StrictSSDB(object):
         :param int size: the max length of removed elements
         :return: the length of removed elements
         :rtype: int
-        
+
         """
         size = get_positive_integer("size", size)
         return self.execute_command('qtrim_front', name, size)
     qrem_front = qtrim_front
-    
+
     def qtrim_back(self, name, size=1):
         """
         Sets the list element at ``index`` to ``value``. An error is returned for out of
         range indexes.
 
         :param string name: the queue name
-        :param int size: the max length of removed elements        
+        :param int size: the max length of removed elements
         :return: the length of removed elements
         :rtype: int
-        
+
         """
         size = get_positive_integer("size", size)
         return self.execute_command('qtrim_back', name, size)
@@ -2083,8 +2089,8 @@ class StrictSSDB(object):
         >>> ssdb.hash_exists('hash_2')
         True
         >>> ssdb.hash_exists('hash_not_exist')
-        False        
-        """                
+        False
+        """
         try:
             return hsize(name) > 0
         except:
@@ -2103,13 +2109,13 @@ class StrictSSDB(object):
         >>> ssdb.zset_exists('zset_2')
         True
         >>> ssdb.zset_exists('zset_not_exist')
-        False        
-        """                
+        False
+        """
         try:
             return zsize(name) > 0
         except:
-            return False    
-    
+            return False
+
     def queue_exists(self, name):
         """
         Return a boolean indicating whether queue ``name`` exists
@@ -2123,18 +2129,18 @@ class StrictSSDB(object):
         >>> ssdb.queue_exists('queue_2')
         True
         >>> ssdb.queue_exists('queue_not_exist')
-        False        
-        """                
+        False
+        """
         try:
             return hsize(name) > 0
         except:
-            return False    
-    
-        
+            return False
+
+
 class SSDB(StrictSSDB):
     """
     Provides backwards compatibility with older versions of ssdb-py(1.6.6) that changed
-    arguments to some commands to be more Pythonic, sane, or by accident. 
+    arguments to some commands to be more Pythonic, sane, or by accident.
     """
     RESPONSE_CALLBACKS = dict_merge(
         StrictSSDB.RESPONSE_CALLBACKS,
@@ -2171,14 +2177,14 @@ class SSDB(StrictSSDB):
         'ttl'
         >>> time.sleep(4)
         >>> ssdb.get("test_ttl")
-        >>> 
+        >>>
         """
         if isinstance(ttl, datetime.timedelta):
             ttl = ttl.seconds + ttl.days * 24 * 3600
         ttl = get_positive_integer('ttl', ttl)
         return self.execute_command('setx', name, value, ttl)
 
-    
+
 class StrictBatch(BaseBatch, StrictSSDB):
     """
     Batch for the StrictSSDB class
@@ -2186,11 +2192,11 @@ class StrictBatch(BaseBatch, StrictSSDB):
     parse_response = StrictSSDB.parse_response
     #exec = execute
 
-    
+
 class Batch(BaseBatch, SSDB):
     """
     Batch for the SSDB class
     """
     parse_response = SSDB.parse_response
-    #exec = execute            
-    
+    #exec = execute
+
